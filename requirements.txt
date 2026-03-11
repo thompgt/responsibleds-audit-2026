@@ -1,0 +1,9 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+fuzzywuzzy
+python-Levenshtein
+jupyter
+ipykernel
