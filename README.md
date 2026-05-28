@@ -20,3 +20,13 @@ A critical part of the audit is detecting Simpson's Paradox—where global trend
 Transparency is key to a responsible audit. Using SHAP (SHapley Additive exPlanations), we identified that while technical skills (Overall/Potential) are primary drivers, market-level features like the league's median fee also play a significant role. This helps stakeholders understand the systemic factors influencing player valuations.
 
 ![SHAP Importance](./docs/assets/shap_importance.png)
+
+### 4. Fair 90% Conformal Prediction
+To account for uncertainty in a responsible way, the audit implements **Conformal Prediction**. This moves beyond point estimates to provide a calibrated 90% confidence interval for each player's fee. The analysis confirms that these intervals maintain consistent coverage across different regions, providing a reliable measure of "valuation risk" that doesn't penalize players based on their origin.
+
+![Conformal Prediction](./docs/assets/conformal_prediction.png)
+
+### 5. Counterfactual Fairness (Shadow Model)
+We conducted a counterfactual audit using a "Shadow Model" to measure the **Geographic Premium**. By simulating a scenario where a player's region is swapped while keeping their performance stats identical, we quantified the systemic bias present in the training data. This insight allows us to calibrate our fairness-aware model to be truly blind to these historical biases.
+
+![Counterfactual Fairness](./docs/assets/counterfactual_fairness.png)
