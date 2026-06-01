@@ -168,13 +168,21 @@ def run_model(X, y, features, df_full):
     print(f"RMSE: {np.sqrt(mean_squared_error(y_test, y_pred)):.2f}")
     print(f"R2 Score: {r2_score(y_test, y_pred):.2f}")
     
+    # Feature Ranges Explanation
+    print("\n--- Feature Ranges & Context ---")
+    stats = X.describe()
+    for feat in features:
+        f_min = stats.loc['min', feat]
+        f_max = stats.loc['max', feat]
+        f_mean = stats.loc['mean', feat]
+        print(f"{feat:22}: Range [{f_min:6.1f} - {f_max:6.1f}] | Mean: {f_mean:6.1f}")
+
     # SHAP
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(X_test)
-    
     plt.figure(figsize=(10, 6))
     shap.summary_plot(shap_values, X_test, feature_names=features, show=False)
-    plt.savefig('shap_summary.png')
+    plt.savefig('plots/shap_summary.png')
     plt.close()
     
     # --- LIME Explanations for Archetypes ---
@@ -186,44 +194,73 @@ def run_model(X, y, features, df_full):
         random_state=42
     )
     
-    # Archetype 1: High Overall/Potential (Superstar)
-    superstar = df_full[df_full['overall'] > 85].head(1)
-    if not superstar.empty:
-        idx = superstar.index[0]
-        row = df_full.loc[idx][features].values.astype(float)
-        exp = explainer_lime.explain_instance(row, model.predict)
-        print(f"\n--- Domain LIME: Superstar archetype ({df_full.loc[idx]['Name']}) ---")
-        fig = exp.as_pyplot_figure()
-        plt.title(f"LIME: Superstar ({df_full.loc[idx]['Name']})")
-        plt.tight_layout()
-        plt.savefig('lime_superstar.png')
-        plt.close()
+    scenario_specs = [
+        {
+            'label': 'Young Brazilian Talent',
+            'query': "(age < 21) & (nationality == 'Brazil')",
+            'desc': 'Young prospect moving from Brazil to Europe.'
+        },
+        {
+            'label': 'English Domestic Move',
+            'query': "(nationality == 'England') & (Home_Nation_Transfer == 1)",
+            'desc': 'English player moving within the UK (Premier League).'
+        },
+        {
+            'label': 'Superstar Juggernaut',
+            'query': "(overall > 85)",
+            'desc': 'Marquee signing with elite overall ability.'
+        },
+        {
+            'label': 'Veteran Retirement',
+            'query': "(age > 33)",
+            'desc': 'Experienced player moving in the twilight of their career.'
+        },
+        {
+            'label': 'Mid-tier Competitive',
+            'query': "(overall >= 74) & (overall <= 78) & (age >= 24) & (age <= 28)",
+            'desc': 'Stable prime-age player in a mid-tier league context.'
+        }
+    ]
 
-    # Archetype 2: Young Talent (U21, High Potential)
-    young_talent = df_full[(df_full['age'] < 22) & (df_full['potential'] > 80)].head(1)
-    if not young_talent.empty:
-        idx = young_talent.index[0]
+    for spec in scenario_specs:
+        candidates = df_full.query(spec['query'])
+        if candidates.empty:
+            # Relax query if no candidates
+            candidates = df_full.head(5) # fallback
+        
+        idx = candidates.index[0]
         row = df_full.loc[idx][features].values.astype(float)
-        exp = explainer_lime.explain_instance(row, model.predict)
-        print(f"\n--- Domain LIME: Young Talent archetype ({df_full.loc[idx]['Name']}) ---")
-        fig = exp.as_pyplot_figure()
-        plt.title(f"LIME: Young Talent ({df_full.loc[idx]['Name']})")
+        exp = explainer_lime.explain_instance(row, model.predict, num_features=10)
+        
+        # Nice Plot Styling
+        lime_df = pd.DataFrame(exp.as_list(), columns=['feature', 'weight'])
+        lime_df = lime_df.sort_values('weight')
+        
+        fig, ax = plt.subplots(figsize=(10, 6))
+        colors = ['#2a9d8f' if val > 0 else '#e76f51' for val in lime_df['weight']]
+        ax.barh(lime_df['feature'], lime_df['weight'], color=colors, alpha=0.85)
+        ax.axvline(0, color='black', linewidth=0.8, linestyle='--')
+        
+        pred_val = model.predict(row.reshape(1, -1))[0]
+        actual_val = df_full.loc[idx]['Transfer_fee']
+        
+        ax.set_title(f"{spec['label']} | Pred €{pred_val/1e6:.2f}M | Actual €{actual_val/1e6:.2f}M", 
+                     fontsize=12, fontweight='bold')
+        ax.set_xlabel('LIME local contribution (Weight)')
+        ax.grid(axis='x', alpha=0.3)
+        
+        # Metadata box
+        metadata = f"{spec['desc']}\nPlayer: {df_full.loc[idx]['Name']}\nNation: {df_full.loc[idx]['nationality']}\nAge: {df_full.loc[idx]['age']}"
+        ax.text(0.98, 0.05, metadata, transform=ax.transAxes, ha='right', va='bottom',
+                fontsize=9, bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='#cccccc'))
+        
         plt.tight_layout()
-        plt.savefig('lime_young_talent.png')
+        fname = f"lime_{spec['label'].lower().replace(' ', '_')}.png"
+        plt.savefig(f"plots/{fname}")
         plt.close()
+        print(f"Generated plot: {fname}")
 
-    # Archetype 3: Veteran
-    veteran = df_full[df_full['age'] > 30].head(1)
-    if not veteran.empty:
-        idx = veteran.index[0]
-        row = df_full.loc[idx][features].values.astype(float)
-        exp = explainer_lime.explain_instance(row, model.predict)
-        print(f"\n--- Domain LIME: Veteran archetype ({df_full.loc[idx]['Name']}) ---")
-        fig = exp.as_pyplot_figure()
-        plt.title(f"LIME: Veteran ({df_full.loc[idx]['Name']})")
-        plt.tight_layout()
-        plt.savefig('lime_veteran.png')
-        plt.close()
+    return model
 
     print("\n--- Feature Definitions ---")
     print("1. Contract_Duration: Years remaining on contract at time of transfer.")
