@@ -24,10 +24,10 @@ In the full model, we observe that technical skills (FIFA Overall/Potential) are
 
 ![SHAP Market](./docs/assets/shap_market.png)
 
-#### Technical Importance (Intrinsic Ability)
-To assess a player's "fair value" based solely on intrinsic ability and context (age, technical skills, league context), we performed a second SHAP analysis excluding market-driven features. This allows stakeholders to see how the model values a player when stripped of potentially biased market proxies, highlighting the impact of raw performance metrics.
+#### 10-Factor Global Explainability (SHAP)
+The plot below illustrates the global feature influence for our refined 10-factor model, where feature values are color-coded (red for high, blue for low) to show their directional impact on the transfer fee. Unlike traditional feature importance plots that only show magnitude, this SHAP beeswarm plot reveals how specific factors like high `Ability_Overall` or `Financial_Strength` consistently drive valuations upward, while factors like increased `Age_Feature` exert downward pressure. This directional transparency addresses the flaws of prior importance rankings by explicitly showing *how* a feature changes the outcome, rather than just *that* it does. From a fairness perspective, it allows us to audit whether sensitive proxies like `Passport_Premium` or `Home_Nation_Transfer` are exerting undue influence compared to intrinsic technical metrics like the `xG_Proxy`. By moving beyond "black-box" importance to granular directional impact, we provide a more transparent and auditable framework that ensures valuations are driven by performance and context rather than opaque systemic biases.
 
-![SHAP Technical](./docs/assets/shap_technical.png)
+![SHAP 10 Factors](./plots/shap_summary.png)
 
 ### 4. Domain Expertise: LIME Scenario Analysis
 Local Interpretable Model-agnostic Explanations (LIME) were used to conduct deep-dive case studies into specific player archetypes (e.g., young prospects from emerging regions vs. veterans in top leagues). These scenario-based audits allow domain experts to validate whether the model's local reasoning aligns with football scouting logic.
