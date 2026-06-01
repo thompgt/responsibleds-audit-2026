@@ -216,9 +216,9 @@ def run_model(X, y, features, df_full):
             'desc': 'Elite veteran (33) moving for a high fee to a top league (Real to Juve).'
         },
         {
-            'label': 'Mid-tier to Arsenal',
-            'query': "Name == 'Lucas Torreira' and Season_Year == 2018",
-            'desc': 'Established competitive player moving to a top-6 league club (Sampdoria to Arsenal).'
+            'label': 'Mid-tier Competitive',
+            'query': "Name == 'Daley Blind' and Season_Year == 2018",
+            'desc': 'Prime-age established player moving between competitive leagues (Man Utd to Ajax).'
         }
     ]
 
