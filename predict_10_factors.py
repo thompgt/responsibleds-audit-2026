@@ -49,10 +49,13 @@ def engineer_features(transfers, fifa):
     # Filter transfers to 2015-2018 (where we have FIFA data)
     transfers = transfers[transfers['Season_Year'].isin([2014, 2015, 2016, 2017, 2018])].copy()
     
-    # Financial strength of buying club: median transfer fee of the buying league in that season
-    league_strength = transfers.groupby(['League_to', 'Season_Year'])['Transfer_fee'].median().reset_index()
-    league_strength.rename(columns={'Transfer_fee': 'Buying_League_Strength'}, inplace=True)
-    transfers = transfers.merge(league_strength, on=['League_to', 'Season_Year'], how='left')
+    # Financial strength of buying club: 3-year rolling mean of the buying league's median transfer fee
+    annual_league_medians = transfers.groupby(['League_to', 'Season_Year'])['Transfer_fee'].median().reset_index()
+    annual_league_medians = annual_league_medians.sort_values(['League_to', 'Season_Year'])
+    annual_league_medians['Buying_League_Strength'] = annual_league_medians.groupby('League_to')['Transfer_fee'].transform(
+        lambda x: x.rolling(window=3, min_periods=1).mean()
+    )
+    transfers = transfers.merge(annual_league_medians[['League_to', 'Season_Year', 'Buying_League_Strength']], on=['League_to', 'Season_Year'], how='left')
     
     # Fuzzy match players (simplified for this task)
     # In a real scenario, we'd do a more robust join. 
@@ -194,7 +197,7 @@ def run_model(X, y, features, df_full):
     print("\n--- Feature Definitions ---")
     print("1. Contract_Duration: Years remaining on contract at time of transfer.")
     print("2. Age_Feature: Player age in years.")
-    print("3. Financial_Strength: Median transfer fee of the BUYING league in the transfer season.")
+    print("3. Financial_Strength: 3-year rolling mean of the median transfer fee of the BUYING league.")
     print("4. Ability_Overall: FIFA Overall rating (quantifies current technical/physical standing).")
     print("5. Ability_Potential: FIFA Potential rating (quantifies future ceiling).")
     print("6. xG_Proxy (Advanced Stat): Sum of FIFA 'Finishing' and 'Positioning' stats.")
