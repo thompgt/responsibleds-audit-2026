@@ -190,12 +190,14 @@ def run_model(X, y, features, df_full):
     superstar = df_full[df_full['overall'] > 85].head(1)
     if not superstar.empty:
         idx = superstar.index[0]
-        # Map back to X_test index or just use the row from df_full
         row = df_full.loc[idx][features].values.astype(float)
         exp = explainer_lime.explain_instance(row, model.predict)
         print(f"\n--- Domain LIME: Superstar archetype ({df_full.loc[idx]['Name']}) ---")
-        for feature, weight in exp.as_list():
-            print(f"{feature}: {weight:.4f}")
+        fig = exp.as_pyplot_figure()
+        plt.title(f"LIME: Superstar ({df_full.loc[idx]['Name']})")
+        plt.tight_layout()
+        plt.savefig('lime_superstar.png')
+        plt.close()
 
     # Archetype 2: Young Talent (U21, High Potential)
     young_talent = df_full[(df_full['age'] < 22) & (df_full['potential'] > 80)].head(1)
@@ -204,8 +206,11 @@ def run_model(X, y, features, df_full):
         row = df_full.loc[idx][features].values.astype(float)
         exp = explainer_lime.explain_instance(row, model.predict)
         print(f"\n--- Domain LIME: Young Talent archetype ({df_full.loc[idx]['Name']}) ---")
-        for feature, weight in exp.as_list():
-            print(f"{feature}: {weight:.4f}")
+        fig = exp.as_pyplot_figure()
+        plt.title(f"LIME: Young Talent ({df_full.loc[idx]['Name']})")
+        plt.tight_layout()
+        plt.savefig('lime_young_talent.png')
+        plt.close()
 
     # Archetype 3: Veteran
     veteran = df_full[df_full['age'] > 30].head(1)
@@ -214,8 +219,11 @@ def run_model(X, y, features, df_full):
         row = df_full.loc[idx][features].values.astype(float)
         exp = explainer_lime.explain_instance(row, model.predict)
         print(f"\n--- Domain LIME: Veteran archetype ({df_full.loc[idx]['Name']}) ---")
-        for feature, weight in exp.as_list():
-            print(f"{feature}: {weight:.4f}")
+        fig = exp.as_pyplot_figure()
+        plt.title(f"LIME: Veteran ({df_full.loc[idx]['Name']})")
+        plt.tight_layout()
+        plt.savefig('lime_veteran.png')
+        plt.close()
 
     print("\n--- Feature Definitions ---")
     print("1. Contract_Duration: Years remaining on contract at time of transfer.")
