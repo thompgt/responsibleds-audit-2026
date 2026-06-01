@@ -117,13 +117,36 @@ def engineer_features(transfers, fifa):
     
     merged['Position_Feature'] = merged['player_positions'].apply(lambda x: group_pos(x.split(',')[0]))
     
-    # 10. International Reputation
-    merged['International_Reputation'] = merged['international_reputation']
+    # 10. Home Nation Transfer (Replacing International Reputation)
+    league_to_country = {
+        'Premier League': 'England', ' England': 'England', 'League One': 'England', 'Championship': 'England',
+        'LaLiga': 'Spain', 'LaLiga2': 'Spain', 'Primera División': 'Spain',
+        'Serie A': 'Italy', 'Serie B': 'Italy', 'Serie C - B': 'Italy',
+        '1.Bundesliga': 'Germany', 'Bundesliga': 'Germany', '2.Bundesliga': 'Germany',
+        'Ligue 1': 'France', 'Ligue 2': 'France',
+        'Liga NOS': 'Portugal', ' Portugal': 'Portugal', 'Ledman Liga Pro': 'Portugal',
+        'Eredivisie': 'Netherlands',
+        'Série A': 'Brazil', ' Brazil': 'Brazil',
+        'Süper Lig': 'Turkey',
+        'Premier Liga': 'Russia', ' Russia': 'Russia',
+        'Jupiler Pro League': 'Belgium', ' Belgium': 'Belgium',
+        'Super League': 'China', ' China': 'China',
+        'MLS': 'United States',
+        'Argentina': 'Argentina', 'Torneo Final': 'Argentina',
+        'Mexico': 'Mexico', 'Liga MX Clausura': 'Mexico', 'Liga MX Apertura': 'Mexico',
+        'Scotland': 'Scotland', 'Premiership': 'Scotland'
+    }
+    
+    def is_home_transfer(row):
+        dest_country = league_to_country.get(row['League_to'], 'Unknown')
+        return 1 if row['nationality'] == dest_country else 0
+
+    merged['Home_Nation_Transfer'] = merged.apply(is_home_transfer, axis=1)
     
     features = [
         'Contract_Duration', 'Age_Feature', 'Financial_Strength', 
         'Ability_Overall', 'Ability_Potential', 'xG_Proxy', 'xA_Proxy', 
-        'Passport_Premium', 'Position_Feature', 'International_Reputation'
+        'Passport_Premium', 'Position_Feature', 'Home_Nation_Transfer'
     ]
     
     X = merged[features]
@@ -204,7 +227,7 @@ def run_model(X, y, features, df_full):
     print("7. xA_Proxy (Advanced Stat): Sum of FIFA 'Vision' and 'Crossing' stats.")
     print("8. Passport_Premium: Binary (1 if player is from a top 10 FIFA nation, 0 otherwise).")
     print("9. Position_Feature: Categorical (0:GK, 1:DEF, 2:MID, 3:FWD).")
-    print("10. International_Reputation: FIFA's 1-5 scale of global profile.")
+    print("10. Home_Nation_Transfer: Binary (1 if player is transferring to a club in their home country, 0 otherwise).")
 
     return model
 
