@@ -201,27 +201,32 @@ def run_model(X, y, features, df_full):
     scenario_specs = [
         {
             'label': 'Young Brazilian Talent',
-            'query': "Name == 'Richarlison' and Season_Year == 2017",
+            'player_name': 'Richarlison',
+            'season': 2017,
             'desc': 'Young prospect moving from Brazil to the Premier League (Fluminense to Watford).'
         },
         {
             'label': 'English Domestic Move',
-            'query': "Name == 'Alex Oxlade-Chamberlain' and Season_Year == 2017",
+            'player_name': 'Alex Oxlade-Chamberlain',
+            'season': 2017,
             'desc': 'English player moving domestically between top clubs (Arsenal to Liverpool).'
         },
         {
             'label': 'Superstar Juggernaut',
-            'query': "Name == 'Paul Pogba' and Season_Year == 2016",
+            'player_name': 'Paul Pogba',
+            'season': 2016,
             'desc': 'Marquee signing with world-record fee context (Juve to Man Utd).'
         },
         {
             'label': 'Veteran Superstar',
-            'query': "Name == 'Cristiano Ronaldo' and Season_Year == 2018",
+            'player_name': 'Cristiano Ronaldo',
+            'season': 2018,
             'desc': 'Elite veteran (33) moving for a high fee to a top league (Real to Juve).'
         },
         {
             'label': 'Mid-tier Competitive',
-            'query': "Name == 'Daley Blind' and Season_Year == 2018",
+            'player_name': 'Daley Blind',
+            'season': 2018,
             'desc': 'Prime-age established player moving between competitive leagues (Man Utd to Ajax).'
         }
     ]
@@ -239,14 +244,20 @@ def run_model(X, y, features, df_full):
     print("10. Home_Nation_Transfer: [0 or 1] 1 if transferring within home country league system.")
 
     for spec in scenario_specs:
-        candidates = df_full.query(spec['query'])
-        if candidates.empty:
-            # Relax query if no candidates
-            candidates = df_full.head(5) # fallback
+        # Use boolean indexing for better reliability than query()
+        mask = (df_full['Name'] == spec['player_name']) & (df_full['Season_Year'] == spec['season'])
+        candidates = df_full[mask]
         
-        idx = candidates.index[0]
-        row = df_full.loc[idx][features].values.astype(float)
-        exp = explainer_lime.explain_instance(row, model.predict, num_features=10)
+        if candidates.empty:
+            # Fallback if specific player not found (though they should be)
+            candidates = df_full.head(1)
+        
+        # Pick the first matching row and its data
+        target_row = candidates.iloc[0]
+        row_values = target_row[features].values.astype(float)
+        
+        # LIME Explanation
+        exp = explainer_lime.explain_instance(row_values, model.predict, num_features=10)
         
         # Nice Plot Styling
         lime_df = pd.DataFrame(exp.as_list(), columns=['feature', 'weight'])
@@ -257,8 +268,8 @@ def run_model(X, y, features, df_full):
         ax.barh(lime_df['feature'], lime_df['weight'], color=colors, alpha=0.85)
         ax.axvline(0, color='black', linewidth=0.8, linestyle='--')
         
-        pred_val = model.predict(row.reshape(1, -1))[0]
-        actual_val = df_full.loc[idx]['Transfer_fee']
+        pred_val = model.predict(row_values.reshape(1, -1))[0]
+        actual_val = target_row['Transfer_fee']
         
         ax.set_title(f"{spec['label']} | Pred €{pred_val/1e6:.2f}M | Actual €{actual_val/1e6:.2f}M", 
                      fontsize=12, fontweight='bold')
@@ -266,7 +277,10 @@ def run_model(X, y, features, df_full):
         ax.grid(axis='x', alpha=0.3)
         
         # Metadata box
-        metadata = f"{spec['desc']}\nPlayer: {df_full.loc[idx]['Name']}\nNation: {df_full.loc[idx]['nationality']}\nAge: {df_full.loc[idx]['age']}"
+        player_name = target_row['Name']
+        nation = target_row['nationality']
+        age = target_row['age']
+        metadata = f"{spec['desc']}\nPlayer: {player_name}\nNation: {nation}\nAge: {age}"
         ax.text(0.98, 0.05, metadata, transform=ax.transAxes, ha='right', va='bottom',
                 fontsize=9, bbox=dict(boxstyle='round', facecolor='white', alpha=0.9, edgecolor='#cccccc'))
         
@@ -274,7 +288,7 @@ def run_model(X, y, features, df_full):
         fname = f"lime_{spec['label'].lower().replace(' ', '_')}.png"
         plt.savefig(f"plots/{fname}")
         plt.close()
-        print(f"Generated plot: {fname}")
+        print(f"Generated plot: {fname} for {player_name}")
 
     return model
 
